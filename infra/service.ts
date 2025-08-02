@@ -13,6 +13,7 @@ import { efs } from "./efs"
 import { postgres } from "./pg"
 
 
+// TODO: include these limits in the config (and in the engine? or just setup-config?)
 // const _serverLimitsDefaultWorkflowRunLimit = 1000000
 // const _serverLimitsDefaultWorkflowRunAlarmLimit = 7500000
 // const _serverLimitsDefaultWorkerLimit = 5000

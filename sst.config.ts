@@ -7,7 +7,6 @@
 // TODO: don't store secrets in task definition env vars. use secrets instead which get passed in via `ssm` arguments
 // TODO: separate service for dashboard? would require a dependency on first service which runs setup-config becoming stable.
 // TODO: is SERVER_URL working? seems so.
-// TODO: service can be placed into private subnets if desired in the transform which deals with SGs to Broker, but then a NAT gateway is needed (I think) to pull the images from ghcr.io
 // TODO: put migrate/setup-config in their own service which gets conditionally deployed to avoid redeployment error on tenant pkey?
 // TODO: hatchet-worker in same vpc
 // TODO: get it working when no route53 domain provided (bastion helpful here)
