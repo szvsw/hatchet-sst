@@ -22,7 +22,7 @@ import { postgres } from "./pg"
 // const _serverLimitsDefaultWorkerSlotLimit = _serverLimitsDefaultWorkerLimit * 100
 // const _serverLimitsDefaultWorkerSlotAlarmLimit = _serverLimitsDefaultWorkerAlarmLimit * 100
 
-const { taskDefinitionCpu, taskDefinitionMemory, rootDomain } = appConfig
+const { engineCpu, engineMemory, rootDomain } = appConfig
 
 
 const ADMIN_EMAIL = `hatchet@${rootDomain}`
@@ -161,8 +161,8 @@ export const service = new sst.aws.Service(
     serviceName,
     {
         cluster,
-        cpu: taskDefinitionCpu,
-        memory: taskDefinitionMemory,
+        cpu: engineCpu,
+        memory: engineMemory,
         loadBalancer: {
             domain,
             rules: [
