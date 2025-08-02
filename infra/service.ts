@@ -4,14 +4,14 @@
 import path from "path"
 
 import { appConfig } from "./config"
-import { SERVER_TASKQUEUE_RABBITMQ_URL } from "./mq"
-import { DATABASE_URL } from "./pg"
+import { brokerUrlSecret } from "./mq"
+import { dbUrlSecret } from "./pg"
 import { vpc, endpoints } from "./vpc"
 import { broker, brokerSourceSecurityGroup } from "./mq"
 import { cluster } from "./cluster"
 import { efs } from "./efs"
 import { postgres } from "./pg"
-
+import { adminPassword } from "./ssm"
 
 // TODO: include these limits in the config (and in the engine? or just setup-config?)
 // const _serverLimitsDefaultWorkflowRunLimit = 1000000
@@ -26,8 +26,7 @@ import { postgres } from "./pg"
 const { engineCpu, engineMemory, rootDomain } = appConfig
 
 
-const ADMIN_EMAIL = `hatchet@${rootDomain}`
-const ADMIN_PASSWORD = "Hatchet1234567890"
+export const ADMIN_EMAIL = `hatchet@${rootDomain}`
 const ADMIN_NAME = "hatchet"
 
 const DEFAULT_TENANT_NAME = "Self-Hosted"
@@ -51,8 +50,6 @@ export const engineAddresses = {
 
 const environment = {
     // Confirmed Correct
-    DATABASE_URL, // Aurora PG
-    SERVER_TASKQUEUE_RABBITMQ_URL, // Amazon MQ RabbitMQ
     SERVER_AUTH_COOKIE_DOMAIN: domain,
     SERVER_DEFAULT_ENGINE_VERSION: "V1",
 
@@ -73,7 +70,6 @@ const environment = {
 
     // Tenant / Admin
     ADMIN_EMAIL,
-    ADMIN_PASSWORD,
     ADMIN_NAME,
     DEFAULT_TENANT_NAME,
     DEFAULT_TENANT_SLUG,
@@ -102,9 +98,9 @@ const migrationContainer: ContainerArg = {
         context: ".",
     },
     entrypoint: ["/hatchet/hatchet-migrate"],
-    environment: {
-        DATABASE_URL,
-    }
+    ssm: {
+        DATABASE_URL: dbUrlSecret.arn,
+    },
 }
 
 const setupConfigContainer: ContainerArg = {
@@ -116,6 +112,11 @@ const setupConfigContainer: ContainerArg = {
     entrypoint: ["/hatchet/hatchet-admin"],
     command: ["quickstart", "--skip", "certs", "--generated-config-dir", "/mnt/efs/config", `--overwrite=${appConfig.overwriteConfig}`],
     environment,
+    ssm: {
+        ADMIN_PASSWORD: adminPassword.arn,
+        DATABASE_URL: dbUrlSecret.arn,
+        SERVER_TASKQUEUE_RABBITMQ_URL: brokerUrlSecret.arn,
+    },
     volumes
 }
 
@@ -128,10 +129,12 @@ const engineContainer: ContainerArg = {
     entrypoint: ["/hatchet/hatchet-engine"],
     command: ["--config", "/mnt/efs/config"],
     environment: {
-        DATABASE_URL,
         SERVER_GRPC_BIND_ADDRESS: "0.0.0.0",
         SERVER_AUTH_SET_EMAIL_VERIFIED: "t",
         SERVER_GRPC_INSECURE: "t",
+    },
+    ssm: {
+        DATABASE_URL: dbUrlSecret.arn,
     },
     volumes
 }
@@ -144,8 +147,8 @@ const dashboardContainer: ContainerArg = {
     },
     entrypoint: ["sh", "./entrypoint.sh"],
     command: ["--config", "/mnt/efs/config"],
-    environment: {
-        DATABASE_URL,
+    ssm: {
+        DATABASE_URL: dbUrlSecret.arn,
     },
     volumes
 }
@@ -158,32 +161,34 @@ const containers: ContainerArg[] = [
     dashboardContainer,
 ]
 
+const loadBalancer: sst.aws.ServiceArgs["loadBalancer"] = {
+    domain,
+    rules: [
+        {
+            listen: "80/http",
+            container: "dashboard",
+            forward: "80/http",
+        },
+        {
+            listen: "443/https",
+            container: "dashboard",
+            forward: "80/http",
+        },
+        {
+            listen: "8443/https", // Must be HTTPS in order for healthcheck.protocolVersion = "GRPC" to work
+            container: "engine",
+            forward: "7070/http",
+        },
+    ],
+}
+
 export const service = new sst.aws.Service(
     serviceName,
     {
         cluster,
         cpu: engineCpu,
         memory: engineMemory,
-        loadBalancer: {
-            domain,
-            rules: [
-                {
-                    listen: "80/http",
-                    container: "dashboard",
-                    forward: "80/http",
-                },
-                {
-                    listen: "443/https",
-                    container: "dashboard",
-                    forward: "80/http",
-                },
-                {
-                    listen: "8443/https", // Must be HTTPS in order for healthcheck.protocolVersion = "GRPC" to work
-                    container: "engine",
-                    forward: "7070/http",
-                },
-            ],
-        },
+        loadBalancer,
         containers,
         link: [efs, postgres, broker],
         transform: {

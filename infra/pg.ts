@@ -4,6 +4,7 @@
 import { vpc } from "./vpc";
 import { databasePassword, databaseUsername } from "./ssm";
 import { appConfig } from "./config";
+import { normalizeName } from "./utils";
 
 const { dbInstanceType, dbStorage } = appConfig
 
@@ -16,5 +17,11 @@ export const postgres = new sst.aws.Postgres("Postgres", {
     instance: dbInstanceType,
     storage: dbStorage,
 });
-// TODO: store in a secret and pass in via ssm
-export const DATABASE_URL = $interpolate`postgres://${postgres.username}:${postgres.password}@${postgres.host}:${postgres.port}/${postgres.database}`;
+
+const dbUrl = $interpolate`postgres://${postgres.username}:${postgres.password}@${postgres.host}:${postgres.port}/${postgres.database}`;
+export const dbUrlSecret = new aws.ssm.Parameter(normalizeName("DatabaseUrl", "/"), {
+    name: normalizeName("DatabaseUrl", "/"),
+    type: "SecureString",
+    value: dbUrl,
+});
+

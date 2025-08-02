@@ -77,5 +77,12 @@ const brokerUrlWithoutProtocol = broker.instances[0].endpoints[0].apply((endpoin
 })
 
 // TODO: username and password are not resolving from broker output, so using a common ancestor (ssm)
-// TODO: store in a secret and pass in via ssm
-export const SERVER_TASKQUEUE_RABBITMQ_URL = $interpolate`amqps://${brokerUsername.value}:${brokerPassword.value}@${brokerUrlWithoutProtocol}`
+const brokerUrl = $interpolate`amqps://${brokerUsername.value}:${brokerPassword.value}@${brokerUrlWithoutProtocol}`
+
+export const brokerUrlSecret = new aws.ssm.Parameter(normalizeName("BrokerUrl", "/"), {
+    name: normalizeName("BrokerUrl", "/"),
+    type: "SecureString",
+    value: brokerUrl,
+});
+
+
