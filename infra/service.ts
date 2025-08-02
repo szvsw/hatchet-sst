@@ -1,10 +1,12 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="../.sst/platform/config.d.ts" />
 
+import path from "path"
+
 import { appConfig } from "./config"
 import { SERVER_TASKQUEUE_RABBITMQ_URL } from "./mq"
 import { DATABASE_URL } from "./pg"
-import { vpc } from "./vpc"
+import { vpc, endpoints } from "./vpc"
 import { broker, brokerSourceSecurityGroup } from "./mq"
 import { cluster } from "./cluster"
 import { efs } from "./efs"
@@ -86,10 +88,19 @@ const volumes: NonNullable<sst.aws.ServiceArgs["volumes"]> = [
 
 type ContainerArg = NonNullable<sst.aws.ServiceArgs["containers"]>[number]
 
+const dockerfileDir = "infra/dockerfiles"
+const migrationDockerfile = path.join(dockerfileDir, "Dockerfile.migration")
+const setupConfigDockerfile = path.join(dockerfileDir, "Dockerfile.setup-config")
+const engineDockerfile = path.join(dockerfileDir, "Dockerfile.engine")
+const dashboardDockerfile = path.join(dockerfileDir, "Dockerfile.dashboard")
+
 const migrationContainer: ContainerArg = {
     name: "migration",
-    image: "ghcr.io/hatchet-dev/hatchet/hatchet-migrate:latest",
-    command: ["/hatchet/hatchet-migrate"],
+    image: {
+        dockerfile: migrationDockerfile,
+        context: ".",
+    },
+    entrypoint: ["/hatchet/hatchet-migrate"],
     environment: {
         DATABASE_URL,
     }
@@ -97,16 +108,24 @@ const migrationContainer: ContainerArg = {
 
 const setupConfigContainer: ContainerArg = {
     name: "setup-config",
-    image: "ghcr.io/hatchet-dev/hatchet/hatchet-admin:latest",
-    command: ["/hatchet/hatchet-admin", "quickstart", "--skip", "certs", "--generated-config-dir", "/mnt/efs/config", `--overwrite=${appConfig.overwriteConfig}`],
+    image: {
+        dockerfile: setupConfigDockerfile,
+        context: ".",
+    },
+    entrypoint: ["/hatchet/hatchet-admin"],
+    command: ["quickstart", "--skip", "certs", "--generated-config-dir", "/mnt/efs/config", `--overwrite=${appConfig.overwriteConfig}`],
     environment,
     volumes
 }
 
 const engineContainer: ContainerArg = {
     name: "engine",
-    image: "ghcr.io/hatchet-dev/hatchet/hatchet-engine:latest",
-    command: ["/hatchet/hatchet-engine", "--config", "/mnt/efs/config"],
+    image: {
+        dockerfile: engineDockerfile,
+        context: ".",
+    },
+    entrypoint: ["/hatchet/hatchet-engine"],
+    command: ["--config", "/mnt/efs/config"],
     environment: {
         DATABASE_URL,
         SERVER_GRPC_BIND_ADDRESS: "0.0.0.0",
@@ -118,41 +137,24 @@ const engineContainer: ContainerArg = {
 
 const dashboardContainer: ContainerArg = {
     name: "dashboard",
-    image: "ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:latest",
-    command: ["sh", "./entrypoint.sh", "--config", "/mnt/efs/config"],
+    image: {
+        dockerfile: dashboardDockerfile,
+        context: ".",
+    },
+    entrypoint: ["sh", "./entrypoint.sh"],
+    command: ["--config", "/mnt/efs/config"],
     environment: {
         DATABASE_URL,
     },
     volumes
 }
 
-// const ncCheckContainer: ContainerArg = {
-//     name: "nc-check",
-//     image: "alpine:latest",
-//     command: [
-//         "sh",
-//         "-c",
-//         `
-//       apk add --no-cache netcat-openbsd bind-tools && \
-//       echo "Checking DNS resolution..." && \
-//       dig +short Engine.szvsw.hatchet.sst && \
-//       echo "Checking port 7070 connectivity..." && \
-//       nc -vz Engine.szvsw.hatchet.sst 7070
-//     `
-//     ],
-// };
 
 const containers: ContainerArg[] = [
-    // SIDECARS FIRST
-    // TRANSFORM takes care of
-    // - inter-container dependencies
-    // - adding service to security group so it can access broker
-    // - setting healthcheck.protocolVersion = "GRPC" for engine service
     engineContainer,
     migrationContainer,
     setupConfigContainer,
     dashboardContainer,
-    // ncCheckContainer,
 ]
 
 export const service = new sst.aws.Service(
@@ -226,14 +228,32 @@ export const service = new sst.aws.Service(
                 })
                 args.containerDefinitions = $jsonStringify(defs)
             },
-            service(args) {
+            service(args, opts) {
                 // We need to add the broker source security group to the service so that
                 // the engine and dashboard containers can communicate with the broker.
                 if (args.networkConfiguration) {
                     const securityGroups = vpc.securityGroups.apply((groups) => [...groups, brokerSourceSecurityGroup.id])
+                    const subnets = appConfig.enginePrivateSubnet ? vpc.privateSubnets : vpc.publicSubnets
+                    const assignPublicIp = appConfig.enginePrivateSubnet ? false : true
                     args.networkConfiguration = {
                         ...args.networkConfiguration,
                         securityGroups,
+                        subnets,
+                        assignPublicIp,
+                    }
+                }
+                if (endpoints) {
+                    const endpointNodes = Object.values(endpoints)
+                    if (opts.dependsOn) {
+                        if (Array.isArray(opts.dependsOn)) {
+                            opts.dependsOn = [...opts.dependsOn, ...endpointNodes]
+                        } else {
+                            // TODO: set the dependsOn here.
+                            // for some reason, the type checker doesn't like the curent setup when DependsOn is a single value
+
+                        }
+                    } else {
+                        opts.dependsOn = endpointNodes
                     }
                 }
             }

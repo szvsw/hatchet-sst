@@ -1,0 +1,4 @@
+FROM ghcr.io/hatchet-dev/hatchet/hatchet-admin:latest
+
+ENTRYPOINT ["/hatchet/hatchet-admin"]
+CMD ["quickstart", "--skip", "certs", "--generated-config-dir", "/mnt/efs/config", "--overwrite=false"] 

@@ -1,0 +1,3 @@
+FROM ghcr.io/hatchet-dev/hatchet/hatchet-migrate:latest
+
+ENTRYPOINT ["/hatchet/hatchet-migrate"] 

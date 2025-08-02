@@ -1,0 +1,4 @@
+FROM ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:latest
+
+ENTRYPOINT ["sh", "./entrypoint.sh"]
+CMD ["--config", "/mnt/efs/config"] 

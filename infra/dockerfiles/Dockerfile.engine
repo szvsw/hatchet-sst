@@ -1,0 +1,4 @@
+FROM ghcr.io/hatchet-dev/hatchet/hatchet-engine:latest
+
+ENTRYPOINT ["/hatchet/hatchet-engine"]
+CMD ["--config", "/mnt/efs/config"] 
