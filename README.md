@@ -1,6 +1,33 @@
 # Hatchet/SST
 
-This is a repository for deploying [Hatchet](https://hatchet.run) via [sst.dev](https://sst.dev) in [AWS](https://aws.amazon.com).
+This is a repository for deploying [Hatchet](https://hatchet.run) via 
+[sst.dev](https://sst.dev) + [Pulumi](https://www.pulumi.com/) in [AWS](https://aws.amazon.com).  
+
+This is aimed at someone who is looking to integrate Hatchet into their stack and needs 
+self-hosting, but is not an expert in AWS.
+
+The Hatchet managed cloud offers a [free tier](https://hatchet.run/pricing), however if
+you do the kind of embarassingly parallel simulation work I do, the limitations on 
+simultaneous Worker counts will prevent it from being relevant to you.  You would likely
+need to go with a custom plan for the kind of workload pattern I have - e.g. running 
+experiments with a few million simulations over a few thousands workers, but only once or 
+twice a month, if that. I recommend you get in touch with the team to discuss pricing, 
+because (a) they are super helpful and (b) if you are an academic like me, you would 
+probably prefer to use managed infra rather than worring about your own.
+
+In any case, it's relatively easy to self-deploy Hatchet (and inexpensive, assuming you 
+don't mind standing up and tearing down infra each time you run an experiment, assuming
+infrequent but highly bursty needs). It's only a few resources really - an AmazonMQ RabbitMQ broker, an Aurora/RDS Postgres 
+database, and an ECS service with the actual Hatchet engine and web UI dashboard. Having said 
+that, there are also serveral conveniences pre-configured so that you can easily
+deploy in private subnets or with/without an internet-facing load balancer. If 
+you have cloud infra experience, you may prefer to roll your own deployment, however, if
+not, this should be enough to get you off the ground with Hatchet relatively quickly. 
+
+Hatchet's official [self-hosting docs](https://docs.hatchet.run/self-hosting) include lots 
+more information, including official support for Kubernetes w/ Helm charts or glasskube, 
+but as someone with no real experience with K8S, I felt it was personally easier for me
+to go the route of translating the [Docker Compose Deployment](https://docs.hatchet.run/self-hosting/docker-compose) instructions into ECS.
 
 ## Requirements 
 
@@ -35,7 +62,7 @@ month and then tearing down, it's much less).
 > If you have an externally managed domain, you will need to create a certificate in ACM
 and add it to the env vars - more documentation coming soon.  It's pretty easy though! Essentially
 just need to add one or two records to your DNS config via your DNS provider's console and 
-wait 20 min.
+wait 20 min. _TODO: enable certificate referencing_
 
 ### Getting ready to deploy
 
