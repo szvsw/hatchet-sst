@@ -133,9 +133,9 @@ You can find the relevant URLs in the results of `sst deploy` under `EngineAddre
 
 ## Deploying engine without ingress from the internet
 
-If you need to deploy without ingress from the internet, simply omit the `ROOT_DOMAIN` 
+If you need to deploy without ingress from the internet, simply omit the `ROOT_DOMAIN`
 env var or set it to `false`.  This will result in the deployment skipping the configuration
-of a Load Balancer for the Hachet service.  However, this means that you will not be able to  
+of a Load Balancer for the Hachet service.  However, this means that you will not be able to
 connect local workers to Hatchet or check the dashboard from your machine, at least not with
 some networking-fu. By default, this will still deploy the service in the public subnets
 of your VPC, but there will be no ingress pathway from your local machine to the service.
@@ -161,7 +161,6 @@ to reach the engine.
 1. Select `Manual proxy configuration`
 1. Configure the `SOCKS` Proxy `host` field as `localhost` and the `port` field as `1080`.
 1. Make sure that `SOCKS v5` is selected.
-<!-- 1. At the bottom of the page, make sure `Proxy DNS when using SOCKS v5` is selected. -->
 1. Click `OK` to save settings.
 1. Open a shell on your Bastion Instance: `aws ssm start-session --target <Bastion-instance-id>`
 1. Run `dig +short engine.<your-stage-name>.hatchet.sst` to print out the IP address of the engine service within the VPC (you can also check this from the AWS console).
