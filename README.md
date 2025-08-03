@@ -53,7 +53,7 @@ configuration variables you set in a corresponding `.env.<stage-name>` file.
 
 | EnvVar | Type | Description |
 | -- | -- | -- |
-| `ROOT_DOMAIN` | `undefined` or `valid domain`|The root domain which will be used for making Hatchet accessible.  The dashboard will be available at `hatchet-<stage-name>.<root-domain>`, e.g.  `hatchet-production.acmelab.com`.  If omitted or `false`, the engine will only be accessible inside the same VPC. |
+| `ROOT_DOMAIN` | `undefined` or `valid domain in Route53`| The root domain which will be used for making Hatchet accessible.  The dashboard will be available at `hatchet-<stage-name>.<root-domain>`, e.g.  `hatchet-production.acmelab.com`.  If omitted or `false`, the engine will only be accessible inside the same VPC. |
 | `DB_INSTANCE_TYPE` | [supported instances](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.DBInstanceClass.SupportAurora.html) | What type of AWS instance to use for the Aurora Postgres database. _nb: omit the `db.` prefix from the instance type name_ |
 | `BROKER_INSTANCE_TYPE` | [supported instances](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rmq-broker-instance-types.html) | What type of AWS instance to use for the AmazonMQ RabbitMQ broker. _nb: do NOT omit the `mq.` prefix from the instance type name_ |
 | `ENGINE_CPU` | [supported vCPU count](https://github.com/sst/sst/blob/46446fbe38b210e18e8a3641f1e0b9de19b9f890/platform/src/components/aws/fargate.ts#L42) | How many vCPUs the Hatchet engine service should use.  _nb: the combination of cpu/mem must be valid_ |
