@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="../.sst/platform/config.d.ts" />
 
-import { normalizeName } from "./utils";
+import { defaultTags, normalizeName } from "./utils";
 import { appConfig } from "./config";
 import { brokerUsername, brokerPassword } from "./ssm";
 import { vpc } from "./vpc";
@@ -15,6 +15,7 @@ export const brokerTargetSecurityGroup = new aws.ec2.SecurityGroup(
     normalizeName("BrokerTargetSecurityGroup"),
     {
         vpcId: vpc.id,
+        tags: defaultTags
     }
 )
 // We need to create a security group for the engine to be in so that it can access the broker.
@@ -22,6 +23,7 @@ export const brokerSourceSecurityGroup = new aws.ec2.SecurityGroup(
     normalizeName("BrokerSourceSecurityGroup"),
     {
         vpcId: vpc.id,
+        tags: defaultTags
     }
 )
 
@@ -34,6 +36,7 @@ export const brokerIngressRule = new aws.vpc.SecurityGroupIngressRule(
         toPort: 5671,
         ipProtocol: "tcp",
         referencedSecurityGroupId: brokerSourceSecurityGroup.id,
+        tags: defaultTags
     }
 )
 
@@ -46,6 +49,7 @@ export const brokerApiIngressRule = new aws.vpc.SecurityGroupIngressRule(
         toPort: 15671,
         ipProtocol: "tcp",
         referencedSecurityGroupId: brokerSourceSecurityGroup.id,
+        tags: defaultTags
     }
 )
 
@@ -65,10 +69,11 @@ export const broker = new aws.mq.Broker(
         users: [{
             consoleAccess: true,
             username: brokerUsername.value,
-            password: brokerPassword.value, // TODO: can this come from ssm?
+            password: brokerPassword.value, // TODO: can this come from ssm? TODO: changing the source value doesn't change the broker since a new user is not created!
         }],
         securityGroups: [brokerTargetSecurityGroup.id],
         subnetIds: [vpc.privateSubnets.apply((subnets) => subnets[0])],
+        tags: defaultTags
     }
 );
 
@@ -83,6 +88,7 @@ export const brokerUrlSecret = new aws.ssm.Parameter(normalizeName("BrokerUrl", 
     name: normalizeName("BrokerUrl", "/"),
     type: "SecureString",
     value: brokerUrl,
+    tags: defaultTags
 });
 
 

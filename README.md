@@ -1,12 +1,14 @@
 # Hatchet/SST
 
-This is a repository for deploying Hatchet via sst.dev onto AWS.
+This is a repository for deploying [Hatchet](https://hatchet.run) via [sst.dev](https://sst.dev) in [AWS](https://aws.amazon.com).
 
 ## Requirements 
 
-You will need an AWS account with credentials, and Node/SST installed.
+You will need an AWS account with credentials, as well as Docker, Node and SST installed.
 
-## How-To
+_TODO: document installing these and setting up credentials_
+
+## Deploying the Stack
 
 ### Purchase a domain (optional, recommended)
 
@@ -20,12 +22,29 @@ _TODO: document usage without a domain or via an imported domain/certificate arn
 
 ### Getting ready to deploy
 
-_TODO: document secret creation_
+`sst` let's you manage different `stages` (aka environments) when you deploy, including 
+some cool functionality around dev deployments, but we will not worry about that for now.  
+By default, when you run a command like `sst deploy`, it will deploy to an environment 
+with your current OS username - e.g. for me that's `szvsw` on my work computer but `sam` 
+on my home computer.  You can always override which stage you want to deploy by passing 
+in the `--stage <stage-name>` flag to the CLI.  By default, `sst` will also load in any
+configuration variables you set in a corresponding `.env.<stage-name>` file.
 
-1. Copy `.env.example` to `.env.testing` (or `.env.<your-stage-name>`, e.g. `production`)
+1. Copy `.env.example` to `.env.<stage-name>` (e.g. `<your-os-username>` or `production`)
 1. Update `ROOT_DOMAIN` (or delete if not publicly accessible)
-1. Update any other configuration variables which might be relevant (e.g. cpu/mem size) _TODO: document how the different ones work_
-1. `sst deploy --stage testing` (or `<your-stage-name>`)
+1. Update any other configuration variables which might be relevant (e.g. cpu/mem size)
+
+_TODO: document config vars, considerations when deploying in a private subnet_
+
+### Setting secrets
+
+1. `sst secret set DatabasePassword <your-password>` (nb: must be 12+ chars)
+1. `sst secret set BrokerPassword <your-password>` (nb: must be 12+ chars)
+1. `sst secret set AdminPassword <your-password>` (nb: must be 12+ chars, must contain a caps value)
+
+### Time to deploy!
+
+1. `sst deploy --stage <stage-name>`
 1. Visit `hatchet-<your-stage-name>.<your-root-domain>`, e.g. `hatchet-production.acmelab.com` and log into the default admin tenant with `hatchet@<your-root-domain>` and the specified password.
 
 
@@ -54,3 +73,5 @@ The `<instance-id> is returned by SST at the end of the deploy as a stack output
 ```
 aws ssm start-session --target <instance-id>
 ```
+
+_TODO: document using pgadmin through the tunnel, accessing the dashboard thru the tunnel if a private subnet is used, etc_

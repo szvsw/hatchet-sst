@@ -4,7 +4,7 @@
 import { vpc } from "./vpc";
 import { databasePassword, databaseUsername } from "./ssm";
 import { appConfig } from "./config";
-import { normalizeName } from "./utils";
+import { defaultTags, normalizeName } from "./utils";
 
 const { dbInstanceType, dbStorage } = appConfig
 
@@ -23,5 +23,6 @@ export const dbUrlSecret = new aws.ssm.Parameter(normalizeName("DatabaseUrl", "/
     name: normalizeName("DatabaseUrl", "/"),
     type: "SecureString",
     value: dbUrl,
+    tags: defaultTags
 });
 

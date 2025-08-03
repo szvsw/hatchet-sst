@@ -5,6 +5,18 @@
 
 declare module "sst" {
   export interface Resource {
+    "AdminPassword": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "BrokerPassword": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "DatabasePassword": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Engine": {
       "service": string
       "type": "sst.aws.Service"

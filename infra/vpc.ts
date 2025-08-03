@@ -2,7 +2,7 @@
 /// <reference path="../.sst/platform/config.d.ts" />
 
 import { appConfig } from "./config";
-import { normalizeName } from "./utils";
+import { defaultTags, normalizeName } from "./utils";
 // VPC Configuration
 // TODO: make az count configurable.
 export const vpc = new sst.aws.Vpc("Vpc",
@@ -48,6 +48,7 @@ function createVpcEndpoints(): VpcEndpoints {
                 subnetIds: vpc.nodes.privateSubnets.apply(subnets => subnets.map(s => s.id)),
                 privateDnsEnabled: true,
                 securityGroupIds: vpc.securityGroups,
+                tags: defaultTags
             }
         )
     }
@@ -61,6 +62,7 @@ function createVpcEndpoints(): VpcEndpoints {
                 vpcEndpointType: "Gateway",
                 // for gateways, we need to explicitly specify the route table.
                 routeTableIds: vpc.nodes.privateRouteTables.apply(tables => tables.map(t => t.id)),
+                tags: defaultTags
             }
         )
     }

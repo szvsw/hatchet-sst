@@ -5,3 +5,7 @@
 export const normalizeName = (name: string, separator: string = "-") => {
     return `${separator === "/" ? "/" : ""}${$app.name}${separator}${$app.stage}${separator}${name}`
 }
+export const defaultTags = {
+    "sst:app": $app.name,
+    "sst:stage": $app.stage
+}
