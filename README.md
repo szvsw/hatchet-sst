@@ -12,6 +12,10 @@ _TODO: document installing these and setting up credentials_
 
 ### Purchase a domain (optional, recommended)
 
+> You can skip this step if you only want the engine available to worker nodes in the 
+same VPC (or via tunneling).  If you do not know what this means, then you should buy a 
+domain!
+
 In most cases, you will want to make the engine available over the open internet so that 
 you will be able to visit the Hatchet dashboard to check task progresses and allow worker
 nodes on your local machine to easily connect to the engine.  The easiest way to do this 
@@ -26,8 +30,6 @@ much less).
 1. Navigate to Route53.
 1. Purchase a domain, write down its name, e.g. `acmelab.com`.
 
-> You can skip this step if you only want the engine available to worker nodes in the 
-same VPC (or via tunneling).  If you do not know what this means, then you should buy a domain!
 
 > If you have an externally managed domain, you will need to create a certificate in ACM
 and add it to the env vars - more documentation coming soon.  It's pretty easy though! 
