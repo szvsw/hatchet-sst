@@ -23,9 +23,9 @@ nodes on your local machine to easily connect to the engine.
 The easiest way to do this is to purchase a domain through AWS Route53, and let sst.dev 
 automatically configure all of the relevant DNS settings, certs for SSL, load balancer 
 config etc.  Depending on how luxurious you are feeling with your choice of domain, this
-is probably ~$50/yr for the domain + the monthly LB costs (~$30/mo, but if you are just 
-standing up the engine for infrequent experiment runs, e.g. once or twice a month and 
-then tearing down, it's much less).
+is probably approx. $50/yr for the domain + the monthly LB costs (approx. $30/mo, but if 
+you are just standing up the engine for infrequent experiment runs, e.g. once or twice a 
+month and then tearing down, it's much less).
 
 1. Log in to your AWS console.
 1. Navigate to Route53.
