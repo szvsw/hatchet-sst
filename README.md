@@ -170,7 +170,7 @@ to reach the engine.
 
 > _nb: though it's not particularly problematic to leave it there, it's probably a good idea to 
 remove the record you added to your `hosts` file as well as the proxy settings in Firefox when you
-are done lest you confuse yourself in the future.
+are done lest you confuse yourself in the future._
 
 ### Opening a shell in the VPC
 
