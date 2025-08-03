@@ -39,8 +39,8 @@ console and wait 20 min.
 ### Getting ready to deploy
 
 `sst` let's you manage different `stages` (aka environments) when you deploy, including 
-some cool functionality around dev deployments, but we will not worry about that for now.  
-By default, when you run a command like `sst deploy`, it will deploy to an environment 
+some cool functionality around dev deployments, but we will not worry about that for now.  By 
+default, when you run a command like `sst deploy`, it will deploy to an environment 
 with your current OS username - e.g. for me that's `szvsw` on my work computer but `sam` 
 on my home computer.  You can always override which stage you want to deploy by passing 
 in the `--stage <stage-name>` flag to the CLI.  By default, `sst` will also load in any
