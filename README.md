@@ -70,7 +70,7 @@ _TODO: document config vars, considerations when deploying in a private subnet_
 
 1. `sst secret set DatabasePassword <your-password> --stage <stage-name>` (nb: must be 12+ chars)
 1. `sst secret set BrokerPassword <your-password> --stage <stage-name>` (nb: must be 12+ chars)
-1. `sst secret set AdminPassword <your-password> --stage <stage-name>` (nb: must be 12+ chars, must contain a caps value)
+1. `sst secret set AdminPassword <your-password> --stage <stage-name>` (nb: must be 12+ chars, must contain an uppercase value, a lowercase value, and a number)
 
 ### Time to deploy!
 
