@@ -18,13 +18,14 @@ domain!
 
 In most cases, you will want to make the engine available over the open internet so that 
 you will be able to visit the Hatchet dashboard to check task progresses and allow worker
-nodes on your local machine to easily connect to the engine.  The easiest way to do this 
-is to purchase a domain through AWS Route53, and let sst.dev automatically configure all 
-of the relevant DNS settings, certs for SSL, load balancer config etc.  Depending 
-on how luxurious you are feeling with your choice of domain, this is probably ~$50/yr for
-the domain + the monthly LB costs (~$30/mo, but if you are just standing up the engine
-for infrequent experiment runs, e.g. once or twice a month and thent earing down, it's 
-much less).
+nodes on your local machine to easily connect to the engine.  
+
+The easiest way to do this is to purchase a domain through AWS Route53, and let sst.dev 
+automatically configure all of the relevant DNS settings, certs for SSL, load balancer 
+config etc.  Depending on how luxurious you are feeling with your choice of domain, this
+is probably ~$50/yr for the domain + the monthly LB costs (~$30/mo, but if you are just 
+standing up the engine for infrequent experiment runs, e.g. once or twice a month and 
+then tearing down, it's much less).
 
 1. Log in to your AWS console.
 1. Navigate to Route53.
@@ -32,9 +33,9 @@ much less).
 
 
 > If you have an externally managed domain, you will need to create a certificate in ACM
-and add it to the env vars - more documentation coming soon.  It's pretty easy though! 
-Essentially just need to add one or two records to your DNS config via your DNS provider's
-console and wait 20 min.
+and add it to the env vars - more documentation coming soon.  It's pretty easy though! Essentially
+just need to add one or two records to your DNS config via your DNS provider's console and 
+wait 20 min.
 
 ### Getting ready to deploy
 
