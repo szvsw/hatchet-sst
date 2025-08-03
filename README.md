@@ -64,7 +64,7 @@ configuration variables you set in a corresponding `.env.<stage-name>` file.
 | `OVERWRITE_CONFIG` | `boolean` | Whether to regenerate the base Hatchet config before redeploying the engine. |
 
 
-_TODO: document config vars, considerations when deploying in a private subnet_
+_TODO: considerations when deploying workers in a private subnet_
 
 ### Setting secrets
 
@@ -77,10 +77,103 @@ _TODO: document config vars, considerations when deploying in a private subnet_
 1. `sst deploy --stage <stage-name>`
 1. Visit `hatchet-<your-stage-name>.<your-root-domain>`, e.g. `hatchet-production.acmelab.com` and log into the default admin tenant with `hatchet@<your-root-domain>` and the specified password.
 
+## Deploying workers in the same subnet when a load balancer is present
+
+If you have configured `ROOT_DOMAIN=your-domain.com`, a load balancer is automatically
+configured and Hatchet's engine is configured to tell workers via the fields encoded in a JWT
+API token to send the appropriate HTTP(s)/gRPC traffic via 
+`hatchet-<your-stage-name>.<root_domain>` and `hatchet-<your-stage-name>.<root_domain>:8443` 
+respectively.  These resolve to the load balancer, which then routes traffic to the appropriate
+containers.  
+
+There's a good chance you might be spinning up thousands of worker nodes, in
+which case you probably want to skip the load balancer altogether, which you can do 
+by deploying the worker nodes in the same VPC as the engine (_TODO: auto-deploy docs coming soon_)
+and using the cloudmap namespace domains.
+
+However, because the client JWTs you generate still have the load balancer URLs encoded in
+the relevant fields, you need to override some environment variables when deploying the worker.
+
+In addition to setting `HATCHET_CLIENT_TOKEN`, you will also need to set:
+
+```
+HATCHET_CLIENT_SERVER_URL=http://Engine.<your-stage-name>.hatchet.sst
+HATCHET_CLIENT_HOST_PORT=Engine.<your-stage-name>.hatchet.sst:7070
+HATCHET_CLIENT_TLS_STRATEGY=none
+```
+
+You can find the relevant URLs in the results of `sst deploy` under `EngineAddresses` in `internalServerUrl` and `internalGrpcBroadcastAddress`.
+
+## Deploying engine without ingress from the internet
+
+If you need to deploy without ingress from the internet, simply omit the `ROOT_DOMAIN` 
+env var or set it to `false`.  This will result in the deployment skipping the configuration
+of a Load Balancer for the Hachet service.  However, this means that you will not be able to  
+connect local workers to Hatchet or check the dashboard from your machine, at least not with
+some networking-fu. By default, this will still deploy the service in the public subnets
+of your VPC, but there will be no ingress pathway from your local machine to the service.
+
+Fortunately, `sst` makes it relatively easy to get connected to the VPC.
+
+> NB: your choice of private/public subnets for the engine containers are irrelevant here,
+since the tunnel we establish in the VPC will already have ingress rules which allow traffic
+to reach the engine.
+
+
+### Setting up Bastion & the tunnel
+
+> _nb: if you are on windows, you will need to use WSL for this part_
+
+1. First, you will need to set `BASTION_ENABLED=true` and redploy (`sst deploy --stage <your-stage-name>`).  Copy the Bastion Instance ID (something like `i-asdf1348`) to your clipboard for use later.
+1. (install tunneling via `sudo sst tunnel install` if you have not already)
+1. Open up a tunnel with `sst tunnel --stage <your-stage-name>`
+
+### Accessing the dashboard
+
+1. Open up a Firefox, then open `Settings > Network Settings > Settings`
+1. Select `Manual proxy configuration`
+1. Configure the `SOCKS` Proxy `host` field as `localhost` and the `port` field as `1080`.
+1. Make sure that `SOCKS v5` is selected.
+<!-- 1. At the bottom of the page, make sure `Proxy DNS when using SOCKS v5` is selected. -->
+1. Click `OK` to save settings.
+1. Open a shell on your Bastion Instance: `aws ssm start-session --target <Bastion-instance-id>`
+1. Run `dig +short engine.<your-stage-name>.hatchet.sst` to print out the IP address of the engine service within the VPC (you can also check this from the AWS console).
+1. Open your `hosts` file in a text editor (on Mac/Linux, this is at `/etc/hosts`, on windows it's at `C:/Windows/System32/drivers/etc`) and add a record at the end which says `<ipaddress> Engine.<your-stage-name>.hatchet.sst`, e.g. `10.0.10.136 Engine.szvsw.hatchet.sst`.  This will tell your computer to route the url to the ip address, while the proxy we configured in Firefox will tell your computer to route the IP address through the tunnel into the VPC.
+1. You can now access the dashboard via the internal cloudmap namespace server url, which should be something like `Engine.<your-stage-name>.hatchet.sst`.
+1. Default log-in email will be `hatchet@example.com` with your specified password from `sst secret`. 
+
+> _nb: though it's not particularly problematic to leave it there, it's probably a good idea to 
+remove the record you added to your `hosts` file as well as the proxy settings in Firefox when you
+are done lest you confuse yourself in the future.
+
+### Opening a shell in the VPC
+
+You can remotely access your Bastion instance by running:
+
+```
+aws ssm start-session --target <Bastion-instance-id>
+```
+
+### Workers in the VPC
+
+You will of course need to deploy your workers in the same VPC.  By default, the a client token
+generated from the dashboard following the instructions above should work fine - it will use
+the internal cloudmap namespace correctly.  However, you will need to set an additional env var
+on the worker:
+
+```
+HATCHET_CLIENT_TLS_STRATEGY=none
+```
+
+## Depoying workers
+
+_TODO: example of worker deployment_
+
+
 
 ## TODO
 
-document credentials, hatchet login/token generation, config variables, route53, etc.
+document credentials, hatchet login/token generation
 
 
 ## Getting in to the VPC:
