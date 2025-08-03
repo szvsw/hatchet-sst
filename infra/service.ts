@@ -26,7 +26,7 @@ import { adminPassword } from "./ssm"
 const { engineCpu, engineMemory, rootDomain } = appConfig
 
 
-export const ADMIN_EMAIL = `hatchet@${rootDomain}`
+export const ADMIN_EMAIL = `hatchet@${rootDomain ?? "example.com"}`
 const ADMIN_NAME = "hatchet"
 
 const DEFAULT_TENANT_NAME = "Self-Hosted"
@@ -35,22 +35,27 @@ const DEFAULT_TENANT_ID = "77a6330d-40e4-4af1-b9e2-b3f713df9250"
 
 // TODO: if no domain is provided, make sure setup still works.
 const serviceName = `Engine`
-const domain = `hatchet-${$app.stage}.${rootDomain}`
-
 const engineCloudMapName = $interpolate`${serviceName}.${$app.stage}.${$app.name}.${vpc.nodes.cloudmapNamespace.name}`
 
+const domain = rootDomain ? `hatchet-${$app.stage}.${rootDomain}` : null
+
+const internalServerUrl = $interpolate`http://${engineCloudMapName}` // TODO: Q: should this use https?
+const externalServerUrl = domain ? `https://${domain}` : internalServerUrl
+const internalGrpcBroadcastAddress = $interpolate`${engineCloudMapName}:7070`
+const externalGrpcBroadcastAddress = domain ? `${domain}:8443` : internalGrpcBroadcastAddress // TODO: Q: will this still work if grpc_insecure=false?
+
 export const engineAddresses = {
-    domain,
+    domain: domain ?? engineCloudMapName,
     cloudMapHost: engineCloudMapName,
-    externalServerUrl: `https://${domain}`,
-    internalServerUrl: $interpolate`http://${engineCloudMapName}`, // TODO: Q: should this use https?
-    externalGrpcBroadcastAddress: `${domain}:8443`,
-    internalGrpcBroadcastAddress: $interpolate`${engineCloudMapName}:7070`, // TODO: Q: will this still work if grpc_insecure=false?
+    externalServerUrl,
+    internalServerUrl,
+    externalGrpcBroadcastAddress,
+    internalGrpcBroadcastAddress,
 }
 
 const environment = {
     // Confirmed Correct
-    SERVER_AUTH_COOKIE_DOMAIN: domain,
+    SERVER_AUTH_COOKIE_DOMAIN: domain ?? engineAddresses.domain,
     SERVER_DEFAULT_ENGINE_VERSION: "V1",
 
     // Seems correct, but have questions
@@ -161,7 +166,7 @@ const containers: ContainerArg[] = [
     dashboardContainer,
 ]
 
-const loadBalancer: sst.aws.ServiceArgs["loadBalancer"] = {
+const loadBalancer: sst.aws.ServiceArgs["loadBalancer"] | undefined = domain ? {
     domain,
     rules: [
         {
@@ -180,7 +185,7 @@ const loadBalancer: sst.aws.ServiceArgs["loadBalancer"] = {
             forward: "7070/http",
         },
     ],
-}
+} : undefined
 
 export const service = new sst.aws.Service(
     serviceName,
