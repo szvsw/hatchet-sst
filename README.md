@@ -197,30 +197,6 @@ _TODO: example of worker deployment_
 
 
 
-## TODO
+## TODO Docs
 
-document credentials, hatchet login/token generation
-
-
-## Getting in to the VPC:
-
-
-`.env.x`
-```
-BASTION_ENABLED=true
-```
-
-```
-sudo sst tunnel install
-sst tunnel
-```
-
-### Session from Bastion Instance
-
-The `<instance-id> is returned by SST at the end of the deploy as a stack output.
-
-```
-aws ssm start-session --target <instance-id>
-```
-
-_TODO: document using pgadmin through the tunnel, accessing the dashboard thru the tunnel if a private subnet is used, etc_
+_document credentials, hatchet login/token generation, using pgadmin through the tunnel, accessing the dashboard thru the tunnel if a private subnet is used, etc_
