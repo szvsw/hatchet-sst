@@ -13,15 +13,15 @@ import { efs } from "./efs"
 import { postgres } from "./pg"
 import { adminPassword } from "./ssm"
 
-// TODO: include these limits in the config (and in the engine? or just setup-config?)
-// const _serverLimitsDefaultWorkflowRunLimit = 1000000
-// const _serverLimitsDefaultWorkflowRunAlarmLimit = 7500000
-// const _serverLimitsDefaultWorkerLimit = 5000
-// const _serverLimitsDefaultWorkerAlarmLimit = 7500
-// const _serverLimitsDefaultTaskRunLimit = 1000000
-// const _serverLimitsDefaultTaskRunAlarmLimit = 7500000
-// const _serverLimitsDefaultWorkerSlotLimit = _serverLimitsDefaultWorkerLimit * 100
-// const _serverLimitsDefaultWorkerSlotAlarmLimit = _serverLimitsDefaultWorkerAlarmLimit * 100
+// TODO: include these limits in the config (optionally in the engine?)
+const SERVER_LIMITS_DEFAULT_WORKFLOW_RUN_LIMIT = 1_000_000
+const SERVER_LIMITS_DEFAULT_WORKFLOW_RUN_ALARM_LIMIT = 750_000
+const SERVER_LIMITS_DEFAULT_WORKER_LIMIT = 5_000
+const SERVER_LIMITS_DEFAULT_WORKER_ALARM_LIMIT = 7_500
+const SERVER_LIMITS_DEFAULT_TASK_RUN_LIMIT = 1_000_000
+const SERVER_LIMITS_DEFAULT_TASK_RUN_ALARM_LIMIT = 750_000
+const SERVER_LIMITS_DEFAULT_WORKER_SLOT_LIMIT = SERVER_LIMITS_DEFAULT_WORKER_LIMIT * 100
+const SERVER_LIMITS_DEFAULT_WORKER_SLOT_ALARM_LIMIT = SERVER_LIMITS_DEFAULT_WORKER_ALARM_LIMIT * 100
 
 const { engineCpu, engineMemory, rootDomain } = appConfig
 
@@ -38,10 +38,10 @@ const engineCloudMapName = $interpolate`${serviceName}.${$app.stage}.${$app.name
 
 const domain = rootDomain ? `hatchet-${$app.stage}.${rootDomain}` : null
 
-const internalServerUrl = $interpolate`http://${engineCloudMapName}` // TODO: Q: should this use https?
+const internalServerUrl = $interpolate`http://${engineCloudMapName}`
 const externalServerUrl = domain ? `https://${domain}` : internalServerUrl
 const internalGrpcBroadcastAddress = $interpolate`${engineCloudMapName}:7070`
-const externalGrpcBroadcastAddress = domain ? `${domain}:8443` : internalGrpcBroadcastAddress // TODO: Q: will this still work if grpc_insecure=false?
+const externalGrpcBroadcastAddress = domain ? `${domain}:8443` : internalGrpcBroadcastAddress
 
 export const engineAddresses = {
     domain: domain ?? engineCloudMapName,
@@ -68,9 +68,19 @@ const environment = {
     SERVER_INTERNAL_CLIENT_INTERNAL_GRPC_BROADCAST_ADDRESS: engineAddresses.internalGrpcBroadcastAddress, // TODO: Q: I think service connect is set up and working, but not positive? How would I know if it's working?
 
     // correct, but should be changed in production
-    SERVER_AUTH_COOKIE_INSECURE: "t", // TODO: I think we can disable this since load balancer has cert? 
-    SERVER_GRPC_INSECURE: "t", // Since loadbalancer is using https, can we remove? if so, would this cause problems for workers in the same network not going through LB?
+    SERVER_AUTH_COOKIE_INSECURE: domain ? "f" : "t",
+    SERVER_GRPC_INSECURE: "t", // even tho loadBalancer is using https for gRPC, we need to keep this as true since we have not set up certs
     SERVER_AUTH_SET_EMAIL_VERIFIED: "t",
+
+    // SERVER LIMITS
+    SERVER_LIMITS_DEFAULT_WORKFLOW_RUN_LIMIT: SERVER_LIMITS_DEFAULT_WORKFLOW_RUN_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_WORKFLOW_RUN_ALARM_LIMIT: SERVER_LIMITS_DEFAULT_WORKFLOW_RUN_ALARM_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_WORKER_LIMIT: SERVER_LIMITS_DEFAULT_WORKER_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_WORKER_ALARM_LIMIT: SERVER_LIMITS_DEFAULT_WORKER_ALARM_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_TASK_RUN_LIMIT: SERVER_LIMITS_DEFAULT_TASK_RUN_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_TASK_RUN_ALARM_LIMIT: SERVER_LIMITS_DEFAULT_TASK_RUN_ALARM_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_WORKER_SLOT_LIMIT: SERVER_LIMITS_DEFAULT_WORKER_SLOT_LIMIT.toString(),
+    SERVER_LIMITS_DEFAULT_WORKER_SLOT_ALARM_LIMIT: SERVER_LIMITS_DEFAULT_WORKER_SLOT_ALARM_LIMIT.toString(),
 
     // Tenant / Admin
     ADMIN_EMAIL,
@@ -132,11 +142,7 @@ const engineContainer: ContainerArg = {
     },
     entrypoint: ["/hatchet/hatchet-engine"],
     command: ["--config", "/mnt/efs/config"],
-    environment: {
-        SERVER_GRPC_BIND_ADDRESS: "0.0.0.0",
-        SERVER_AUTH_SET_EMAIL_VERIFIED: "t",
-        SERVER_GRPC_INSECURE: "t",
-    },
+    environment,
     ssm: {
         DATABASE_URL: dbUrlSecret.arn,
     },
@@ -151,6 +157,7 @@ const dashboardContainer: ContainerArg = {
     },
     entrypoint: ["sh", "./entrypoint.sh"],
     command: ["--config", "/mnt/efs/config"],
+    environment,
     ssm: {
         DATABASE_URL: dbUrlSecret.arn,
     },
@@ -221,6 +228,14 @@ export const service = new sst.aws.Service(
                     defs.forEach((def) => {
                         if (["migration", "setup-config"].includes(def.name)) {
                             def.essential = false
+                        }
+                        if (def.name === "setup-config") {
+                            def.dependsOn = [
+                                {
+                                    containerName: "migration",
+                                    condition: "SUCCESS",
+                                },
+                            ]
                         }
                         if (["engine", "dashboard"].includes(def.name)) {
                             def.dependsOn = [
