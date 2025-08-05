@@ -6,7 +6,7 @@ This is a repository for deploying [Hatchet](https://hatchet.run) via
 ## Background
 
 This is aimed at someone who is looking to integrate Hatchet into their stack and needs 
-self-hosting, but is not an expert in AWS.
+self-hosting, but is not an expert in AWS (or you are familiar with AWS/ECS but not EKS).
 
 The Hatchet managed cloud offers a [free tier](https://hatchet.run/pricing), however if
 you do the kind of embarassingly parallel simulation work I do, the limitations on 
