@@ -3,6 +3,8 @@
 This is a repository for deploying [Hatchet](https://hatchet.run) via 
 [sst.dev](https://sst.dev) + [Pulumi](https://www.pulumi.com/) in [AWS](https://aws.amazon.com).  
 
+## Background
+
 This is aimed at someone who is looking to integrate Hatchet into their stack and needs 
 self-hosting, but is not an expert in AWS.
 
@@ -27,13 +29,44 @@ not, this should be enough to get you off the ground with Hatchet relatively qui
 Hatchet's official [self-hosting docs](https://docs.hatchet.run/self-hosting) include lots 
 more information, including official support for Kubernetes w/ Helm charts or glasskube, 
 but as someone with no real experience with K8S, I felt it was personally easier for me
-to go the route of translating the [Docker Compose Deployment](https://docs.hatchet.run/self-hosting/docker-compose) instructions into ECS.
+to go the route of translating the 
+[Docker Compose Deployment](https://docs.hatchet.run/self-hosting/docker-compose) instructions
+into ECS.
 
 ## Requirements 
 
 You will need an AWS account with credentials, as well as Docker, Node and SST installed.
 
-_TODO: document installing these and setting up credentials_
+### Install Docker
+
+Visit [Docker](https://www.docker.com/) and install the relevant version for your system 
+if you do not have it already.  This will be necessary when deploying since containers
+are built on your machine before being pushed to ECR.
+
+### Install Node/NPM
+
+Follow the instructions [here](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+to get Node/npm installed on your machine if you do not have them already.  I recommend 
+using `nvm` regardless of whether you are on Windows vs OSX/Linux
+
+### Create an AWS Account
+
+You can follow the official AWS instructions or just use a pre-existing account with relevant
+permissions; however, [sst.dev's instructions](https://sst.dev/docs/aws-accounts/)
+are actually pretty helpful in that they guide you through setting up an organization with
+different isolated accounts for specific environments, so if you are standing up a new project,
+following them is not a bad idea!
+
+### Clone the repo and install deps
+
+```sh
+cd path/to/your/repos/
+git clone https://github.com/szvsw/hatchet-sst.git
+cd hatchet-sst
+npm i .
+```
+
+
 
 ## Deploying the Stack
 
@@ -81,6 +114,7 @@ configuration variables you set in a corresponding `.env.<stage-name>` file.
 | EnvVar | Type | Description |
 | -- | -- | -- |
 | `ROOT_DOMAIN` | `undefined` or `valid domain in Route53`| The root domain which will be used for making Hatchet accessible.  The dashboard will be available at `hatchet-<stage-name>.<root-domain>`, e.g.  `hatchet-production.acmelab.com`.  If omitted or `false`, the engine will only be accessible inside the same VPC. |
+| `DB_STORAGE` | `[number] GB` | Size of the Postgres database storage. |
 | `DB_INSTANCE_TYPE` | [supported instances](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.DBInstanceClass.SupportAurora.html) | What type of AWS instance to use for the Aurora Postgres database. _nb: omit the `db.` prefix from the instance type name_ |
 | `BROKER_INSTANCE_TYPE` | [supported instances](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rmq-broker-instance-types.html) | What type of AWS instance to use for the AmazonMQ RabbitMQ broker. _nb: do NOT omit the `mq.` prefix from the instance type name_ |
 | `ENGINE_CPU` | [supported vCPU count](https://github.com/sst/sst/blob/46446fbe38b210e18e8a3641f1e0b9de19b9f890/platform/src/components/aws/fargate.ts#L42) | How many vCPUs the Hatchet engine service should use.  _nb: the combination of cpu/mem must be valid_ |
