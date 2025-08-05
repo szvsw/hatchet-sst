@@ -57,7 +57,7 @@ planning frameworks used by policymakers, utility operators, real estate portfol
 homeowners. 
 
 As part of that work, I often work on research projects/experiments for myself or colleagues
-with anywhere from 10e3 to 10e7 building energy simulations, and so have had to develop workflows 
+with anywhere from 1e3 to 1e7 building energy simulations, and so have had to develop workflows 
 which can handle operating at the requisite scale. 
 
 > _You are probably immediately wondering what the carbon cost of the research is. Across all my
