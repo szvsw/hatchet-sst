@@ -103,7 +103,7 @@ re-usable extensible patterns including middleware for things like data infiltra
 by creating [Scythe](https://github.com/szvsw/scythe).  Create simpler self-hosting config
 via [sst.dev](https://sst.dev).
 
-### The other path(s).
+### The road not taken...
 
 There's probably one main alternative solution which *might* be a better choice than what I have
 settled on: [Coiled](https://coiled.io) + [Dask](https://dask.org).  It's pretty easy to use,
