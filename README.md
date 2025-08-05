@@ -176,9 +176,9 @@ of your VPC, but there will be no ingress pathway from your local machine to the
 
 Fortunately, `sst` makes it relatively easy to get connected to the VPC.
 
-> NB: your choice of private/public subnets for the engine containers are irrelevant here,
+> _nb: your choice of private/public subnets for the engine containers are irrelevant here,
 since the tunnel we establish in the VPC will already have ingress rules which allow traffic
-to reach the engine.
+to reach the engine._
 
 
 ### Setting up Bastion & the tunnel
@@ -230,7 +230,19 @@ HATCHET_CLIENT_TLS_STRATEGY=none
 _TODO: example of worker deployment_
 
 
+## Cost Estimate
+
+
+- Aurora/RDS: r6g.xlarge, $0.2016/hr
+- MQ: m7g.large, $0.0816/hr
+- Fargate: 4vCPU/8GB, $0.19/hr
+- ALB: ~$30/mo (depends on if Workers connect thru ALB or within VPC)
+- NAT (optional), 2 AZs, ~$65/mo
+
+About $370/month without a NAT, about $430/month with a NAT or PrivateLink VPC Endpoints
+
+
 
 ## TODO Docs
 
-_document credentials, hatchet login/token generation, using pgadmin through the tunnel, accessing the dashboard thru the tunnel if a private subnet is used, etc_
+_document credentials, hatchet login/token generation, using pgadmin through the tunnel etc_
