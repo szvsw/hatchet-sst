@@ -15,7 +15,8 @@ need to go with a custom plan for the kind of workload pattern I have - e.g. run
 experiments with a few million simulations over a few thousands workers, but only once or 
 twice a month, if that. I recommend you get in touch with the team to discuss pricing, 
 because (a) they are super helpful and (b) if you are an academic like me, you would 
-probably prefer to use managed infra rather than worring about your own.
+probably prefer to use managed infra rather than worring about your own.  You can [compare
+pricing](#cost-estimate) at the end of the document.
 
 In any case, it's relatively easy to self-deploy Hatchet (and inexpensive, assuming you 
 don't mind standing up and tearing down infra each time you run an experiment, assuming
@@ -124,6 +125,10 @@ configuration variables you set in a corresponding `.env.<stage-name>` file.
 | `BASTION_ENABLED` | `boolean` | Whether to add a Bastion instance in your VPC which gives you remote access/tunneling capabilities |
 | `OVERWRITE_CONFIG` | `boolean` | Whether to regenerate the base Hatchet config before redeploying the engine. |
 
+> _nb: the default instance sizes in .env.example are relatively large and sized for decent
+throughput.  See the [cost estimate](#cost-estimate) at the end of the document.  If you 
+want to start cheaper, consider dropping down to something with 1vCPU for the broker, 2 
+vCPU for the DB, and 2 vCPU for the engine._
 
 _TODO: considerations when deploying workers in a private subnet_
 
@@ -232,14 +237,35 @@ _TODO: example of worker deployment_
 
 ## Cost Estimate
 
+This cost estimate presented is sized for a moderately high throughput and DOES NOT include 
+your worker node compute costs, just the engine, database, queue, etc. 
 
 - Aurora/RDS: r6g.xlarge, $0.2016/hr
 - MQ: m7g.large, $0.0816/hr
 - Fargate: 4vCPU/8GB, $0.19/hr
 - ALB: ~$30/mo (depends on if Workers connect thru ALB or within VPC)
 - NAT (optional), 2 AZs, ~$65/mo
+- Not included: some negligible ECR costs, Domain registration cost (e.g. $50/yr)
 
-About $370/month without a NAT, about $430/month with a NAT or PrivateLink VPC Endpoints
+About $13/day or $370/month without a NAT, or about $430/month with a NAT or PrivateLink VPC Endpoints.
+
+Note that the [managed Hatchet pricing](https://hatchet.run/pricing) for the Growth plan 
+is currently $425/month, but it includes $100/month in worker node compute credits, meaning
+the effective infrastructure price is $325/month, which already beats this.  Given that
+you can get set up with managed Hatchet Cloud in literally seconds AND you can very easily 
+auto-deploy worker nodes via managed comptue with auto-scaling and CI/CD already 
+configured, I would say that pricing seems very attractive versus self-hosting for an 
+actual persistent application (as compared to my typical use case, where I can just 
+stand up and tear down the whole stack since I only need it once or twice a month).
+
+Of course you can tune those instance size to your needs (and maybe even use spot capacity
+for the engine, though that seems risky), skip the load balancer entirely, and so on so you
+might see costs anywhere in the $100-300/month depending on your settings, but still, then
+you might be competing with the managed Hatchet Starter Plan @ $180/mo. 
+
+To me this suggests that you probably need a pretty strong argument to go the self-hosting
+route, which is probably just that you actually need to own your infra for one business/dev 
+reason or another.
 
 
 
