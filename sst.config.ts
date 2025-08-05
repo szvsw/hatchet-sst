@@ -7,7 +7,6 @@
 // TODO: is SERVER_URL working? seems so.
 // TODO: put migrate/setup-config in their own service which gets conditionally deployed to avoid redeployment error on tenant pkey?
 // TODO: hatchet-worker in same vpc
-// TODO: get it working when no route53 domain provided (bastion helpful here)
 
 
 export default $config({

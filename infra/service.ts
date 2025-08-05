@@ -33,7 +33,6 @@ const DEFAULT_TENANT_NAME = "Self-Hosted"
 const DEFAULT_TENANT_SLUG = "self-hosted"
 const DEFAULT_TENANT_ID = "77a6330d-40e4-4af1-b9e2-b3f713df9250"
 
-// TODO: if no domain is provided, make sure setup still works.
 const serviceName = `Engine`
 const engineCloudMapName = $interpolate`${serviceName}.${$app.stage}.${$app.name}.${vpc.nodes.cloudmapNamespace.name}`
 

@@ -5,6 +5,35 @@
 
 declare module "sst" {
   export interface Resource {
+    "AdminPassword": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "BrokerPassword": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "DatabasePassword": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "Engine": {
+      "service": string
+      "type": "sst.aws.Service"
+      "url": string
+    }
+    "Postgres": {
+      "database": string
+      "host": string
+      "password": string
+      "port": number
+      "type": "sst.aws.Postgres"
+      "username": string
+    }
+    "Vpc": {
+      "bastion": string
+      "type": "sst.aws.Vpc"
+    }
   }
 }
 /// <reference path="sst-env.d.ts" />
