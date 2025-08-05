@@ -13,7 +13,7 @@ export const postgres = new sst.aws.Postgres("Postgres", {
     vpc,
     password: databasePassword.value,
     username: databaseUsername.value,
-    database: "hatchet",
+    database: `hatchet_${$app.stage.replace("-", "_")}`,
     instance: dbInstanceType,
     storage: dbStorage,
 });
