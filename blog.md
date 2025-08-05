@@ -47,6 +47,28 @@ books, etc.
 get it to make it into the papers I write, but which is arguably more complex and valuable
 from a personal skill development perspective.
 
+## Context
+
+Buildings account for ~40% of global emissions, mostly via space heating snd cooling. My 
+research @ the MIT Sustainable Design Lab (School of Architecture+Planning) is focused on
+decarbonizing the built environment by developing tools which leverage distributed computing 
+and machine learning to accelerate large-scale bottom up building energy modeling within retrofit
+planning frameworks used by policymakers, utility operators, real estate portfolio owners, and 
+homeowners. 
+
+As part of that work, I often work on research projects/experiments for myself or colleagues
+with anywhere from 10e3 to 10e7 building energy simulations, and so have had to develop workflows 
+which can handle operating at the requisite scale. 
+
+> _You are probably immediately wondering what the carbon cost of the research is. Across all my
+the simulations I've invoked, assuming some carbon factors and PUE factors for the AWS us-east-1
+data center, I've estimated it to be on the order or 1 month of emissions associated with a 
+typical single family home in New England. Definitely not nothing, but definitely small enough 
+that if just one or two additional homes or businesses install a heat pump and do some airsealing
+that wouldn't have otherwise, it will make the research net carbon negative. Could there have been 
+a better use for that carbon spent on compute that might result in even greater carbon leverage?
+Maybe, probably, but this is what I do and work on and enjoy, so for now I just hope for the best._
+
 
 ## Development history
 
