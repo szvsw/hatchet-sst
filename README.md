@@ -21,7 +21,7 @@ pricing](#cost-estimate) at the end of the document.
 In any case, it's relatively easy to self-deploy Hatchet (and inexpensive, assuming you 
 don't mind standing up and tearing down infra each time you run an experiment, assuming
 infrequent but highly bursty needs). It's only a few resources really - an AmazonMQ RabbitMQ broker, an Aurora/RDS Postgres 
-database, and an ECS service with the actual Hatchet engine and web UI dashboard. Having said 
+database, and an ECS service with the actual Hatchet engine, API, and web UI dashboard. Having said 
 that, there are also serveral conveniences pre-configured so that you can easily
 deploy in private subnets or with/without an internet-facing load balancer. If 
 you have cloud infra experience, you may prefer to roll your own deployment, however, if
