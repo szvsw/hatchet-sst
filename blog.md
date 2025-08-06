@@ -498,6 +498,73 @@ type: object
 
 ## Scythe - from a developer perspective
 
+### Requirements
+
+The key design requirement that I wanted to satisfy was to make it easy for an academic/engineer
+to quickly define what the interface and business logic of a single experiment task would be
+and then quickly convert that into a massively parallel experiment with well structured,
+pre-collected outputs. This means we will want to be able to automatically detect and 
+serialize both inputs and outputs into a dataframe-like format. It also means we will want
+to automatically handle serializing local artifacts required by simulations into S3 (for me,
+these might be boundary condition specs, like the `.epw` format weather files used in building
+simulations).  We also want good records of what the specifications for the experiment were,
+both at the interface level (i.e. what was the configuration/meaning of inputs and outputs) 
+and at the instance level (which specific values of the interfaces' inputs were used).
+
+### Dealing with thick & thin payloads
+
+### Divide and Conquer: maximizing allocation/collection throughput with recursive subdivision
+
+Let's say we have 1e7 simulations to run, and each simulation takes 2-3 seconds to complete.
+
+We will have some worker nodes which are responsible for taking the specifications for all simulations
+from a parquet file and enqueuing the simulations, and then a much larger pool of worker nodes
+which are responsible for executing the simulations; the enqueuing workers will also be 
+responsible for gathering and combining results.
+
+Now let's suppose we can add simulations to Hatchet's queue at approximately a rate of 100 
+tasks/s from a single enqueuing worker.  It will take that worker 1e5s ~= 1 day to enqueue all the 
+tasks. More problematic though is that if we spin up 400 worker nodes, we will be completing
+on average 400 tasks every 2.5 seconds, or an average of 160 tasks/second.  Except we only have
+100 tasks reaching the queue per second, and we will be bottlenecked with lots of compute nodes 
+sitting idle!  How can we get around this?
+
+We can get around it by recursively subdividing the original batch of 1e7 simulations into smaller
+batches, which in turn either get subdvided again or if the recursion base case tripwire is
+triggered, then the remaining batch gets added to the queue as actual simulations to run.
+
+As an example, let's consider a single subdivision level with a branching factor of 10. The
+root scatter/gather task will download the complete experiment specs parquet file from S3,
+break it up into 10 equally sized pieces (or 9 equally sized pieces + some left overs), 
+and then create children tasks which perform the scatter/gather logic on the trimmed batches.
+Since we only set a single subdivision level, these children will be responsible for actual
+adding the individual task specs for the simulations to the Hatchet queue.  This means we 
+now have 10 children scatter/gather tasks, which each have 1e6 simulations to enqueue, which,
+assuming the engine can handle the additional worker throughput, means 1000 tasks/s enqueued. This 
+means we can now bump up to 2500 leaf simulation worker nodes, which would average 1000 tasks 
+completed per second since tasks take an average of 2.5s. Our entire experiment of 1e7
+runs should be completed in 2 hours and 45 min, give or take. 
+
+Now, suppose we choose to instead use two levels of recursive subdivision. Then we will end
+up with 100 enqueuing workers, which would mean 10k tasks/s enqueued (if the engine can handle
+it), and we could theoretically use 25k workers, and be done in 15 minutes. However, realistically,
+you probably will be limited by your AWS service quota at something like 5k-10k worker nodes.
+Additionally, the Hatchet engine, if self-deployed, might not be able to support 10k tasks/s
+enqueuing or finishing. However, there are still significant benefits to using a higher branching
+factor when it comes to collecting results.
+
+When a terminal scatter/gather task is collecting its leaf/children simulation tasks' results,
+it's pulling them directly from Hatchet, and we will be limited by whatever the throughput there is.
+However, it will combine those results into a parquet file(s), which will be serialized 
+and sent to S3 and the scatter/gather task will return a thin payload with an S3 URI(s).
+The predecessor scatter/gather task in the tree will be responsible for collecting the S3 URIs
+of its children, retrieving them from s3, combining them, and then serializing the combined
+version back to S3, and passing a thin payload output up the tree, until eventually we
+get to the root scatter gather task.  This is where the recursive subdivision really shines,
+as it can greatly reduce the amount of time it takes to collect and combine results by breaking
+it up into parallelized tasks, especially since we can use ThreadPoolExecutors to parallelize the
+network-bound process of pulling the children's thin URI payloads from S3.
+
 
 
 ## Cloud Infrastructure
