@@ -511,7 +511,6 @@ simulations).  We also want good records of what the specifications for the expe
 both at the interface level (i.e. what was the configuration/meaning of inputs and outputs) 
 and at the instance level (which specific values of the interfaces' inputs were used).
 
-### Dealing with thick & thin payloads
 
 ### Divide and Conquer: maximizing allocation/collection throughput with recursive subdivision
 
@@ -565,6 +564,69 @@ as it can greatly reduce the amount of time it takes to collect and combine resu
 it up into parallelized tasks, especially since we can use ThreadPoolExecutors to parallelize the
 network-bound process of pulling the children's thin URI payloads from S3.
 
+
+### Dealing with thick & thin payloads
+
+Hatchet's task payload size is limited to something like 4MB (correct me if I'm wrong @hatchet-dev team!).
+This means that if we are 1e6 simulations, we most likely would not be able to submit the 
+task as the payload containing all of the information for all of the simulations would be
+too large.  The typical way around this is to serialize the payload, store it somewhere else,
+and then submit a reference to that payload in the actual scatter/gather fanout task spec.
+
+In an earlier version, I allowed the scatter/gather input spec to accept *either* a list of
+task specs *or* a reference to a file containing all the task specs, but some of the code
+around that got pretty gross, so in the latest version I decided to only support S3 URIs.
+
+
+```py
+class ScatterGatherInput(BaseSpec):
+    """Input for the scatter gather workflow."""
+
+    task_name: str = Field(..., description="The name of the Hatchet task to run.")
+    specs_uri: S3Url = Field(..., description="The path to the specs to run.")
+    storage_settings: ScytheStorageSettings = Field(
+        default_factory=lambda: ScytheStorageSettings(),
+        description="The storage settings to use.",
+    )
+    recursion_map: RecursionMap = Field(..., description="The recursion map to use.")
+    save_errors: bool = Field(default=False, description="Whether to save errors.")
+
+    ...
+
+    @cached_property
+    def specs(self) -> list[ExperimentInputSpec]:
+        """Fetch the specs and convert to the input type."""
+        local_path = self.fetch_uri(self.specs_uri, use_cache=True)
+        df = pd.read_parquet(local_path)
+        specs_dicts = df.to_dict(orient="records")
+        validator = self.standalone.input_validator
+        return [validator.model_validate(spec) for spec in specs_dicts]
+
+    ...
+```
+
+We also do something similar with results outputs - while each individual simulation/experiment
+task can safely return a Pydantic model containing the actual results, as soon as we start
+combining the results of multiple experiments, we will exceed the output payload size,
+so we use the same "thin" payload approach.  If a scatter/gather task is a terminal node
+which actually allocated the leaf experiment tasks, then when it is done, it simply combines
+the results of all of the children tasks into a dataframe (or dataframes if the user also 
+added user-defined dataframes to the corresponding key of the output model); these get uploaded
+to S3 in an "intermediate results" section of the experiment's directory within the bucket.
+It returns a reference to each of the dataframes it wrote to S3. Then, a predecessor 
+scatter/gather tasks on earlier levels of the tree simply collect the dataframes generated
+by each of _its_ children scatter/gather tasks, combines them, writes to S3, and returns URIs.
+The root scatter/gather task then ultimately does the exact same thing, resulting in a 
+single set of dataframes with results from every simulation, e.g. one dataframe for all of
+the scalars, and one dataframe for each of the custom user-defined dataframes in the task
+output.
+
+If each simulation generates large amounts of data (e.g. high-resolution hourly timeseries
+data or images), then the user can use the utilities inside of the base `ExperimentInputSpec`
+class to write those to an appropriately namespaced/scoped location in the experiment directory
+and return a reference to those files, creating their own datalake that they can later pull from.
+
+_TODO: document writing out user files_
 
 
 ## Cloud Infrastructure
