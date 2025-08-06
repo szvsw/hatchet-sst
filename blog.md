@@ -21,7 +21,7 @@ serializing data to and from cloud buckets, configuring queues, etc).
 
 There are of course lots of data engineering orchestration tools out there already, but Scythe
 is a bit more lightweight and hopefully a little simpler to use, at the expense of fewer bells and whistles (for now)
-like robust dataset lineage, etc.
+like robust dataset lineage, ui/ux for browsing previous experiments etc.
 
 [Hatchet](https://hatchet.run) is already very easy (and fun!) to use for newcomers to
 distributed computing, so I recommend checking out their docs - you might be better off
@@ -29,7 +29,9 @@ simply directly running Hatchet! Scythe is just a lightweight modular layer on t
 which is really tailored to the use case of generating large datasets of consistently structured
 experiment inputs and outputs. Another option you might check out would be something like [Coiled + Dask](https://coiled.io/).
 
-## Motivation for this writeup
+## Context
+
+### Motivation for writeup
 
 I'm writing this for a few reasons - 
 
@@ -37,17 +39,17 @@ I'm writing this for a few reasons -
 to get into large-scale distributed cloud computing (large at least in the context of 
 academia, specifically engineering/applied ML fields, as opposed to say AI research) who
 might otherwise take a while to get up to speed on stuff, and/or who feel extensive pain trying
-to learn their institutions archaic and arcane supercomputing cluster patterns (ahem) when all
-they wan to do is just run a shitload of simulations. 
+to learn their institution's archaic and arcane supercomputing cluster patterns (ahem) when all
+they want to do is just run a shitload of simulations. 
 - to give back to and participate in the community of developers who share their experiences
-and challenges on their internet, and in so doing hopefully help at least one other person
+and challenges on the internet, and in so doing hopefully help at least one other person
 learn and grow, the way countless others have helped me with their blog posts, videos, tutorials, 
 books, etc.
-- to reflect on some of the work I've been doing in the course of my Masters/PhD that does not 
-get it to make it into the papers I write, but which is arguably more complex and valuable
+- to reflect on some of the work I've been doing in the course of my Masters/PhD that is not
+really relevant to reserach publications, but which is arguably more complex and valuable
 from a personal skill development perspective.
 
-## Context
+### Background
 
 Buildings account for ~40% of global emissions, mostly via space heating snd cooling. My 
 research @ the MIT Sustainable Design Lab (School of Architecture+Planning) is focused on
@@ -60,21 +62,21 @@ As part of that work, I often work on research projects/experiments for myself o
 with anywhere from 1e3 to 1e7 building energy simulations, and so have had to develop workflows 
 which can handle operating at the requisite scale. 
 
-> _You are probably immediately wondering what the carbon cost of the research is. Across all my
-the simulations I've invoked, assuming some carbon factors and PUE factors for the AWS us-east-1
-data center, I've estimated it to be on the order or 1 month of emissions associated with a 
-typical single family home in New England. Definitely not nothing, but definitely small enough 
+> _You are probably immediately wondering what the carbon cost of the research is. Across all
+the simulations I've invoked since starting in the early 2020s, assuming some carbon factors and PUE factors for the AWS us-east-1
+data center, I've estimated it to be equivalent something on the order of 1 month of emissions associated with a 
+typical single family home in New England. <br><br> Definitely not nothing, but definitely small enough 
 that if just one or two additional homes or businesses install a heat pump and do some airsealing
 that wouldn't have otherwise, it will make the research net carbon negative. Could there have been 
-a better use for that carbon spent on compute that might result in even greater carbon leverage?
-Maybe, probably, but this is what I do and work on and enjoy, so for now I just hope for the best._
+a better use for all that carbon spent on compute which might have resulted in even greater carbon leverage?
+Maybe - probably - but this is what I do and work on and enjoy, so for now I just hope for the best._
 
 
 ## Development history
 
 Over the past few years, I've worked on and off on the system I use when I need to run
 a few million simulations at a time, including rewriting things from the ground up a few 
-times.  There's probably a component of that which is just wanting to try out a fancy new
+times.  There's probably a component of that impulse to rewrite which is just wanting to try out a fancy new
 thing I've learned about each time, another component which is wanting to grow as a 
 developer by re-evaluating and re-designing something to achieve the same goal but with 
 lessons learned and a better eye for what would be useful functionality, and finally a 
@@ -82,19 +84,19 @@ component of that is to satisfy the desire to get things to a place where someon
 can actually take advantage of and make use of some of my work product in the open source
 spirit.
 
-- v-2: Spring 2023: Earning the `embarrassing` in the name: embarrassingly parallel, and 
+- vminus2: Spring 2023: Earning the word `embarrassing`: embarrassingly parallel, and 
 embarrassingly architected. Spin up a bunch of instances on [PaperSpace](paperspace.com) 
 (now owned by DigitalOcean) each with very high numbers of CPUs, open up virtual desktop 
 via web UI, use [tmux](https://github.com/tmux/tmux/wiki) to start 30-ish simulation 
 processes per instance. Each process does ~1k-2k sims, writes an HDF file with all of its
 sim results to S3, eventually run a separate collector after completion to combine S3 
 results.
-- v-1: Summer 2023 - Spring 2024: Roll your own. Use SQS to ingest a message for each 
+- vminus1: Summer 2023 - Spring 2024: Roll my own. Use SQS to ingest a message for each 
 different simuation, then spin up AWS Batch array job with a few thousand worker nodes 
 (Fargate Spot) which chew through messages from the queue, exit after queue has been empty for 
 some amount of time.  Ugly attempts at dynamic leaf task invocation.
-- v0: Summer 2024 - Spring 2025: Adopt [Hatchet](hatchet.run) (v0) as the async distributed
-queue instead of SQS. Abstract common/shared scatter/gather logic to decouple simulation
+- v0: Summer 2024 - Spring 2025: Adopt a proper distributed asynchronous task framework - [Hatchet](hatchet.run) (v0) - as the async distributed
+queue instead of the lower level SQS. Abstract common/shared scatter/gather logic to decouple simulation
 fanout patterns from underlying leaf tasks.  Still create Hatchet worker nodes via AWS Batch 
 (Fargate Spot). Use AWS Copilot CLI (blech) if self-deploying Hatchet, but mostly use
 managed Hatchet.
@@ -103,7 +105,10 @@ re-usable extensible patterns including middleware for things like data infiltra
 by creating [Scythe](https://github.com/szvsw/scythe).  Create simpler self-hosting config
 via [sst.dev](https://sst.dev).
 
-### The road not taken...
+### The road(s) not taken...
+
+Celery is the most popular and common async task queue for Python, but I wanted to stay away
+from it for a variety of reasons I won't get into here.  It would not have been a bad choice though.
 
 There's probably one main alternative solution which *might* be a better choice than what I have
 settled on: [Coiled](https://coiled.io) + [Dask](https://dask.org).  It's pretty easy to use,
@@ -112,7 +117,7 @@ I come across Coiled earlier, I might have just gone that route.  I didn't come 
 Fall 2024, and I had already put substantial design time into the version using Hatchet,
 so there was a bit of a sunk cost thing going on there, but I also just genuinely really
 liked Hatchet's design decisions and the team from hatchet had already
-been super fun and easy to work with as I was stress testing some of their managed infra, 
+been super fun and easy to work with as I was stress-testing some of their managed infra, 
 so I felt it was worth it to continue with Hatchet - as well as for a variety of other reasons which I 
 probably will not get into in this post.  I guess one of them is that software stack at 
 the building/real estate decarbonization planning SaaS startup that that I do ML engineering
@@ -121,17 +126,60 @@ like to eventually move us away from Celery to Hatchet if we ever do a refactor 
 async task management part of the stack, which we probably won't ("if it ain't broke..."), 
 but if we do I would at least like to be prepared to make an argument for switching.
 
-There's of course other bits of tooling like Dagster, Airflow, Prefect etc that play a role 
+There are of course other bits of tooling like Dagster, Airflow, Prefect etc that play a role 
 in workflow orchestration and data management, plus platforms like Weights & Biases or Neptune.ai
 that play a role in experiment tracking (I actually really like WandB and use it at CarbonSignal), 
 but I think these are mostly overkill in the context I am most typically working 
 (academic experiments run once or twice a month - if that - with a few million tasks in 
 each experiment).
 
+If you have other recommendations you think I should check out, would love to discuss!
+
+### So why stick with Hatchet?
+
+I would say the top things that I find most useful in Hatchet over say Celery, or my self-rolled 
+SQS queues, or something like Coiled+Dask or any of the other options I looked at are: 
+
+#### DAGs
+Pretty great first class support for complex DAGs complete with detailed type-safety and payload validation.
+I vastly prefer the design language here over Celery's mechanisms for building DAGs, and the
+type safety via Pydantic is awesome, both at runtime and in dev (yes I know you can achieve
+something similar with Celery but it is ugly).  This was especially ugly in my early versions, where
+I essentially would just have a worker track all of its results in memory and periodically
+flush them to S3, rather than using a true scatter/gather DAG. It could also easily result 
+in lost compute if a node got shut down between flushes.
+
+#### Retry/Durability in DAGs
+
+Fantastic retry/durable handling in DAGs, which for me plays a key role in greatly reducing 
+costs by removing most of the annoyances that come with running on spot capacity. Most queues have some form of acking receipt 
+on finish/retrying tasks, so that if a spot capacity worker gets reclaimed by AWS, the message/task
+will still get processed by another worker node, but the retry durability unique to Hatchet 
+is especially important in scatter/gather style-tasks - if I've already allocated 5e6 out of 1e7 simulations, 
+I definitely don't want that first half getting allocated again if a spot capacity worker gets reclaimed by AWS!
+
+Hatchet will automatically resume allocating simulations where the previous worker node left off when the
+allocation task gets picked up again.  Similarly, during collection, let's 5% of the simulations had failed
+due to an uploaded artifact which had bad data in it (e.g. a weather file from a faulty weather station).
+I can easily just retry those directly, and retrigger collection of all results - since I use
+a recursive subdivision tree pattern for scattering and gathering tasks, Hatchet only re-runs
+the branches of the tree that actually needed to be rerun. This retry+durability support 
+makes it stress-free to use spot capacity, which GREATLY reduces costs.
+
+#### Worker Tags
+
+Being able to specify which node type a task should run on makes it a lot easier to efficiently
+allocate compute.  For instance, I know that my scatter/gather task needs relatively high memory
+and benefits from multiple CPUs when it is assembling results files, while my leaf simulation
+tasks are limited by essentially single core performance.  I can easily just specify that
+leaf tasks should be on 1vCPU/4GB nodes with an appropriate tag, and my scatter/gather task
+need to be on 4vCPU/16GB nodes with an appropriate tag, and then when deploying cloud compute,
+give the workers tags depending on what type of node they are on.
+
 ## Scythe - from a user perspective
 
 
-Scythe is useful for running many parallel simulations with a common I/O interface.
+Scythe is useful for running many parallel/concurrent simulations with a common I/O interface.
 It abstracts away the logic of uploading and referencing artifacts, issuing simulations 
 and combining results into well-structured dataframes and parquet files.
 
@@ -165,9 +213,14 @@ following structure:
 ```
 
 In this example, we will demonstrate setting up a building energy simulation so we can 
-create a dataset of energy modeling results for use in training a surrogate model.
+create a dataset of energy modeling results for use in training a surrogate model.  In 
+fact, this experiment itself might just be one node in a larger DAG which handles automated
+design space sampling, training, and progressively growing the training set + retraining
+until error threshold metrics are satisfied. For now, we will just focus on a simple experiment
+though.
 
-To begin, we start by defining the schema of the inputs and outputs. The inputs will 
+To begin, we start by defining the schema of the inputs and outputs by inheriting from
+the relevant classes imported from Scythe. The inputs will 
 ultimately be converted into dataframes (where the defined input fields are columns). 
 Similarly, the output schema fields will be used as columns of results dataframes 
 (and the input dataframe will actualy be used as a MultiIndex). 
@@ -203,7 +256,7 @@ class BuildingSimulationOutput(ExperimentOutputSpec):
 ```
 
 The schemas above will be exported into your results bucket as `experiment_io_spec.yaml` 
-including any docstrings and descriptions.
+including any docstrings and descriptions, following [JSON Schema](https://docs.pydantic.dev/latest/concepts/json_schema/).
 
 _nb: you can also add your own dataframes to the outputs, e.g. for non-scalar values 
 like timeseries and so on. documentation coming soon._
@@ -449,12 +502,182 @@ type: object
 
 ## Cloud Infrastructure
 
-This will assume that you have limited at least some knowledge of
+This will assume that you have at least some knowledge of
 [Docker](https://docker.com) and containers, but otherwise will try to introduce you to 
 some of the key parts of the cloud deployment - and really cloud computing in general. It
 covers some stuff that's pretty boring but it's not something that you will really learn
 in the normal course of your academic research, and it's ultimately relatively simple to 
 at least get to working knowledge with, so I think it's worth covering here.
+
+### Containerization
+
+> (skip to [Deploying Containers](#deploying-containers) if you are familiar with Docker 
+but not ECS, otherwise skip this section entirely and go to [Self-hosting](#self-hosting-hatchet-as-an-intro-to-cloud-configuration))
+
+> The Docker documentation is extensive and great, especially the 
+[Getting Started Guide](https://docs.docker.com/get-started/), so I recommend you start 
+there.  There are also countless guides online.  Still, I think it is worthwhile to try
+to condense everything in one place so you get a good understanding of how all the pieces
+fit together.
+
+If you work in academia, you are probably familiar with Python tools like 
+[Conda](https://anaconda.org/anaconda/conda), [uv](https://astral.sh/uv), and 
+[Poetry](https://python-poetry.org), or if you are coming from the web world you are probably familiar with npm/pnpm. 
+All of these enable you to consistently define and to some extent package the dependencies 
+of your project so that you can, hopefully, on another machine, easily reproduce the _environment_ you used 
+to write your software and still have your code run.  There are of course still all sorts of
+issues you might run into, like needing Python + Conda/uv/Poetry or Node + npm/pnpm installed,
+their might be incompatibilities with the version of Python/Node or the other machine's architecture,
+etc.  uv and nvm/pnpm do help with these, but it still can be a pain.  Plus, there might
+be all sorts of other dependencies which cannot be captured by those tools, like, for me, 
+[EnergyPlus](https://energyplus.net/), the de facto standard for building energy model simulation
+in practice and academia (developed and maintained by the DoE and NREL).
+
+Docker images and containers address this exact issue. You can think of
+_images_ as a pre-built artifact which contains everything you need to run a _container_, 
+which you can think of (even if it's not exactly true) an isolated, mini virtual machine
+that has everything installed and working perfectly already, letting you easily reproduce
+an entire application, including any necessary dependencies, environment variables, system 
+libraries, binaries, etc.  Think of it like shipping your lab experiment in a fully 
+stocked portable lab that can run identically anywhere, no matter the underlying hardware 
+or OS. This means that images + containers are the de-facto standard for deploying applications
+in the cloud - you just need to tell your cloud infrastructure "hey go fetch this image
+and run it in a container."  You typically store the containers in a repository which lets
+you define different tags, i.e. versions, as it evolves over time, just like GitHub.  The
+most common container registry to use is probalby _Elastic Container Registry_ [(_ECR_)](https://aws.amazon.com/ecr/) on 
+AWS of _GitHub Container Repository_ [(_GHCR_)](https://ghcr.io).
+
+You define the image of a container using a _Dockerfile_, which typically starts by inheriting
+from another image (typically based off of some lightweight Linux distributino) which 
+has most of what you need already, like Python etc.  Then, you copy over your project files,
+install anything you need to, and set what command should run when a container for this 
+image is started up. 
+
+#### Dockerfile example
+
+Let's take a look at this in practice. Suppose we have a standard Python repo which uses
+`uv` for its dependency management.  There's a `pyproject.toml` file which configures 
+our project as usual, along with a `uv.lock` file which has all the precise dependency 
+version information locked, and then some code in our `experiments/` dir and a `main.py` 
+file which looks like this:
+
+```py
+from scythe.worker import ScytheWorkerConfig
+
+from experiments import *  # import the experiments so that they get auto-registered
+
+
+if __name__ == "__main__":
+    worker_config = ScytheWorkerConfig()
+    worker_config.start()
+```
+
+In the following Dockerfile, we inherit from a lightweight image with
+Python pre-installed, then we copy over the binaries for `uv` from a pre-existing image
+released by Astral, the creators of `uv`.  Then we copy over anything from our codebase
+we need, install our Python dependencies with `uv`, and then, specify what command to run
+when starting a container up with this image.
+
+```dockerfile
+ARG PYTHON_VERSION=3.12
+FROM python:${PYTHON_VERSION}-slim-bookworm AS main
+COPY --from=ghcr.io/astral-sh/uv:0.6.16 /uv /uvx /bin/
+
+WORKDIR /code
+COPY uv.lock pyproject.toml README.md /code/
+
+RUN uv sync --locked --no-install-project
+
+COPY experiments /code/experiments/
+COPY main.py /code/main.py
+
+RUN uv sync --locked
+
+CMD [ "uv", "run", "main.py" ]
+```
+
+We can build this container with `docker build -f path/to/your/Dockefile .`
+
+Once the image is built, we can run it, tag it, push it to a repository, etc.  However,
+generally, we use our infrastructure-as-code or CI/CD tooling to manage that for us.
+
+##### Docker Compose example
+
+Often times, we need multiple containers running at the same time - maybe a frontend and 
+a backend, or in our case, the Hatchet task system - which itself needs a few containers for 
+its different components like a database, broker, engine, dashboard, etc.  That's 
+where 
+[_Docker Compose_](https://docs.docker.com/get-started/docker-concepts/running-containers/multi-container-applications/) 
+comes in.  We use `docker compose` to run multiple containers at the same time, including
+setting up a network for them to talk to each other, setting up volume mounts to persist 
+information even after we spin the containers down, allowing ports on your host machiine to
+be routed into ports in specific containers etc. The configuration for running multi-container
+applications is done in a file typically called `docker-compose.yml`. Here's an example
+which just specifies running our a single container for our worker, which we assume will
+be connecting to our cloud instance of Hatchet via an API token specified in the `.env` file:
+
+```yaml
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.12}
+    env_file:
+      - .env
+    deploy:
+      mode: replicated
+      replicas: 1
+```
+
+We can run this with a simple `docker compose up`.  If we want to run more copies of the 
+worker, we can also easily bump the `replicas` up to `n`.  However, We might also want to stand 
+up Hatchet locally, in which case we can follow the instructions from [Hatchet's official docs](https://docs.onhatchet.run/self-hosting/hatchet-lite)
+and create a second file called `docker-compose.hatchet.yml` with their provided contents.
+
+We can run both the container and the worker using the following command:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.hatchet.yml up
+```
+
+#### Deploying containers
+
+Now that you have a solid mental model of containerization (hopefully), let's briefly talk about how
+containers are used in a cloud application. Typically, you have some form of CI/CD pipeline
+which is resposnible for testing your code, building containers, and pushing to a repository.
+
+Then, when you deploy your infrastructure, your cloud provider will pull the images from
+the repository and run however many of them you ask for - maybe it's controlled by some auto-scaling
+logic.  In my case, I generally just manually set "a shitload of containers" - e.g. 5000 -
+when I am starting an experiment run and then manually set it to "0" when the experiment is 
+done, rather than worrying about relying on auto-scaling logic which might accidentally
+run up a huge bill if it fails to scale down.  One reason I like AWS Batch/Fargate is that
+you can set a timeout for an entire array job (array as in many fargate instances running the
+same container) so there is a safeguard in place that will automatically shut down all containers.
+
+Another common way of controlling costs is to use `spot` capacity, where your instances 
+running your containers come at roughly 1/4th the price and are put on machines which are
+effectively idling in your cloud provider's data center, BUT they can be terminated at any
+time if on-demand customers need them. Typically when this happens, you just get another
+instance automatically spun up as soon as its available. Lucky for us, Hatchet's 
+robust failure/retry handling makes this a complete non-issue - it's totally fine if a 
+worker goes offline in the middle of a task.
+
+Probably the easiest way to get started with deploying containers in AWS is by using 
+_Elastic Container Service_ ([_ECS_](https://aws.amazon.com/ecs/)).  This is a little bit 
+of a simplification, but you can think of ECS as, essentially, just a way of replicating 
+what Docker Compose does but in the cloud.  You define a _cluster_, which can have multiple 
+_services_.  A cluster is backed by compute instances, like EC2, but I typically use Fargate
+so that you do not have to worry about actually having a compute cluster backing the service cluster.
+Each service in the cluster can be thought of, roughly, as the equivalent of a docker-compose file -
+i.e. it can contain multiple containers which you specify images for, commands, environment variables,
+exposed ports, etc.  Each _task_ within a service is just a replica of that service's task
+definition. So if we want 3000 copies of our worker node, we can just specify to run 
+3000 copies of the relevant service/task.
+
+
 
 ### Self-hosting Hatchet as an intro to cloud configuration
 
@@ -580,5 +803,8 @@ set up specific security groups for each of the resources, and then create the r
 or egress rules.  I've done that for the Broker for instance, but am still using the default
 SG outlined above for everything else.  Want to contribute to [szvsw/hatchet-sst](https://github.com/szvsw/hatchet-sst)? 
 That would be a great and easy first PR!
+
+
+#### Deploying the Hatchet service
 
 ### Worker nodes
